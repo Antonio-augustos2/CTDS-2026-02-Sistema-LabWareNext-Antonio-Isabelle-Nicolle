@@ -1,0 +1,2 @@
+# Curriculos devem ser entregues apenas pelo endpoint autenticado.
+Require all denied

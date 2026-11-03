@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LabWare Core - Mission Automation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background-color: #030712;
+      color: #fff;
+    }
+
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Efeitos de Glow Neon */
+    .glow-cyan {
+      box-shadow: 0 0 15px #06b6d4, inset 0 0 15px #06b6d4;
+      text-shadow: 0 0 10px #06b6d4;
+    }
+
+    .glow-magenta {
+      box-shadow: 0 0 15px #ec4899, inset 0 0 15px #ec4899;
+      text-shadow: 0 0 10px #ec4899;
+    }
+
+    .glow-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
+    }
+
+    .btn-cyber {
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-cyber:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.8);
+    }
+
+    /* Animação do Balão */
+    @keyframes balloonFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.03); }
+    }
+    .balloon-animation {
+      animation: balloonFloat 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-slate-950 overflow-x-hidden">
+
+  <!-- HERO SECTION / GAME CONTAINER -->
+  <div class="relative w-full max-w-5xl rounded-3xl glow-card p-6 md:p-8 overflow-hidden">
+    
+    <!-- Luzes de Fundo -->
+    <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Cabeçalho da Hero -->
+    <div class="text-center mb-6 relative z-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/40 bg-cyan-950/50 text-cyan-400 text-xs font-semibold uppercase tracking-widest mb-3">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+        LabWare Core Experience
+      </div>
+      <h1 class="font-orbitron text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-pink-500 tracking-wide uppercase">
+        Elimine o Caos Manual
+      </h1>
+      <p class="text-slate-400 text-sm md:text-base mt-2 max-w-2xl mx-auto">
+        Clique nos gargalos manuais do laboratório para resolvê-los usando os pilares da <span class="text-cyan-400 font-bold">LabWare</span>!
+      </p>
+    </div>
+
+    <!-- HUD (Placar & Tempo) -->
+    <div class="grid grid-cols-3 gap-4 mb-4 relative z-10 font-orbitron">
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+        <span class="text-xs text-slate-400 block uppercase">Eficiência</span>
+        <span id="score" class="text-2xl md:text-3xl font-bold text-cyan-400">0%</span>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+        <span class="text-xs text-slate-400 block uppercase">Tempo</span>
+        <span id="timer" class="text-2xl md:text-3xl font-bold text-pink-500">20s</span>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+        <span class="text-xs text-slate-400 block uppercase">Erros Salvos</span>
+        <span id="resolved" class="text-2xl md:text-3xl font-bold text-emerald-400">0</span>
+      </div>
+    </div>
+
+    <!-- CANVAS DO JOGO -->
+    <div class="relative w-full h-[360px] md:h-[420px] rounded-2xl border border-cyan-500/30 bg-slate-950/90 overflow-hidden shadow-inner">
+      <canvas id="gameCanvas" class="w-full h-full cursor-crosshair"></canvas>
+
+      <!-- Overlay de Abertura: Abertura com Balão Inflado -->
+      <div id="gameOverlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20">
+        <div id="overlayContent" class="max-w-md flex flex-col items-center">
+          
+          <!-- Elemento de Balão Neon Interativo -->
+          <div id="balloonContainer" class="cursor-pointer balloon-animation mb-4 group flex flex-col items-center">
+            <div class="w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 flex flex-col items-center justify-center p-2 text-center border-2 border-cyan-300 shadow-[0_0_30px_rgba(236,72,153,0.8)] transition-transform group-hover:scale-110">
+              <span class="text-3xl">🎈</span>
+              <span class="font-orbitron text-xs font-black text-white mt-1 uppercase">LabWare</span>
+            </div>
+            <div class="w-2 h-4 bg-slate-500 mx-auto"></div>
+            <span class="text-cyan-400 font-orbitron text-xs mt-2 animate-bounce uppercase font-bold">Clique no Balão para Começar!</span>
+          </div>
+
+          <h2 id="overlayTitle" class="font-orbitron text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 mb-2 uppercase">
+            Venha Trabalhar na LabWare!
+          </h2>
+          <p id="overlayDesc" class="text-slate-300 text-sm leading-relaxed">
+            Transforme o futuro da ciência e da automação de laboratórios no mundo todo.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé / Por que escolher LabWare -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-400 relative z-10">
+      <div class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
+        <span class="text-cyan-400 text-base">🧪</span>
+        <span><b>LIMS & ELN Integrados:</b> Dados 100% digitais e sem falhas manuais.</span>
+      </div>
+      <div class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
+        <span class="text-pink-400 text-base">🛡️</span>
+        <span><b>Conformidade Total:</b> Rastreabilidade auditável e em tempo real.</span>
+      </div>
+      <div class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
+        <span class="text-emerald-400 text-base">⚡</span>
+        <span><b>Alta Produtividade:</b> Automatize rotinas repetitivas em segundos.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SCRIPT DO JOGO -->
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('score');
+    const timerEl = document.getElementById('timer');
+    const resolvedEl = document.getElementById('resolved');
+    const overlay = document.getElementById('gameOverlay');
+    const balloonContainer = document.getElementById('balloonContainer');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayDesc = document.getElementById('overlayDesc');
+
+    // Web Audio API para Som de Explosão
+    function playPopSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+        gain.gain.setValueAtTime(1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      } catch (e) {
+        console.log("Audio API não permitida sem interação prévia.");
+      }
+    }
+
+    // Redimensiona Canvas
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Estado do Jogo
+    let gameRunning = false;
+    let score = 0;
+    let resolvedCount = 0;
+    let timeLeft = 20;
+    let timerInterval = null;
+    let targets = [];
+    let particles = [];
+    let spawnTimer = null;
+
+    // Tipos de "Erros Manuais"
+    const errorTypes = [
+      { label: '⚠️ Amostra Perdida', color: '#ec4899', pts: 15 },
+      { label: '📝 Erro no Caderno', color: '#f59e0b', pts: 10 },
+      { label: '❌ Falha de Auditoria', color: '#ef4444', pts: 20 },
+      { label: '⏳ Teste Lento', color: '#a855f7', pts: 10 }
+    ];
+
+    class Target {
+      constructor() {
+        const type = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+        this.label = type.label;
+        this.color = type.color;
+        this.pts = type.pts;
+        this.radius = 45;
+        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+        this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+        this.alpha = 0;
+        this.fadingIn = true;
+        this.life = 180;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 12px Rajdhani, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.label, this.x, this.y);
+
+        ctx.restore();
+      }
+
+      update() {
+        if (this.fadingIn) {
+          this.alpha += 0.05;
+          if (this.alpha >= 1) this.fadingIn = false;
+        }
+        this.life--;
+        if (this.life < 30) {
+          this.alpha = Math.max(0, this.life / 30);
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = Math.random() * 5 + 2;
+        this.vx = (Math.random() - 0.5) * 12;
+        this.vy = (Math.random() - 0.5) * 12;
+        this.alpha = 1;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.03;
+      }
+    }
+
+    function createExplosion(x, y, color, count = 20) {
+      for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+      }
+    }
+
+    function spawnTarget() {
+      if (!gameRunning) return;
+      if (targets.length < 5) {
+        targets.push(new Target());
+      }
+    }
+
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid Cyber no Fundo
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      // Partículas
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw();
+        if (p.alpha <= 0) particles.splice(index, 1);
+      });
+
+      // Alvos
+      targets.forEach((target, index) => {
+        target.update();
+        target.draw();
+
+        if (target.life <= 0) {
+          targets.splice(index, 1);
+        }
+      });
+
+      if (gameRunning || particles.length > 0) {
+        requestAnimationFrame(updateGame);
+      }
+    }
+
+    // Ação ao Clicar no Balão
+    balloonContainer.addEventListener('click', (e) => {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      playPopSound();
+      createExplosion(centerX, centerY, '#ec4899', 50);
+      createExplosion(centerX, centerY, '#06b6d4', 50);
+
+      overlay.classList.add('hidden');
+      startGame();
+    });
+
+    // Clique durante o jogo
+    canvas.addEventListener('click', (e) => {
+      if (!gameRunning) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      targets.forEach((target, index) => {
+        const dist = Math.hypot(clickX - target.x, clickY - target.y);
+        if (dist < target.radius) {
+          playPopSound();
+          createExplosion(target.x, target.y, '#06b6d4');
+          score = Math.min(100, score + target.pts);
+          resolvedCount++;
+          
+          scoreEl.innerText = `${score}%`;
+          resolvedEl.innerText = resolvedCount;
+
+          targets.splice(index, 1);
+        }
+      });
+    });
+
+    function startGame() {
+      score = 0;
+      resolvedCount = 0;
+      timeLeft = 20;
+      targets = [];
+      particles = [];
+      gameRunning = true;
+
+      scoreEl.innerText = '0%';
+      resolvedEl.innerText = '0';
+      timerEl.innerText = `${timeLeft}s`;
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.innerText = `${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+
+      clearInterval(spawnTimer);
+      spawnTimer = setInterval(spawnTarget, 700);
+
+      requestAnimationFrame(updateGame);
+    }
+
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+      clearInterval(spawnTimer);
+
+      overlayTitle.innerText = "SISTEMA OTIMIZADO!";
+      overlayTitle.className = "font-orbitron text-2xl md:text-3xl font-extrabold text-emerald-400 mb-2";
+      
+      overlayDesc.innerHTML = `Você elevou a eficiência para <b class="text-cyan-400">${score}%</b> e eliminou <b class="text-emerald-400">${resolvedCount} erros de laboratório</b>!<br><br><span class="text-pink-400 font-bold text-base">Venha trabalhar na LabWare!</span><br>Faça parte do time que desenvolve as soluções de LIMS & ELN que transformam a ciência no mundo.`;
+      
+      balloonContainer.style.display = "flex";
+      overlay.classList.remove('hidden');
+    }
+
+    requestAnimationFrame(updateGame);
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+DB_HOST == 'localhost'
+DB_USER == 'root'
+DB_PASS == ''
+DB_NAME == 'recrutamento'
+GEMINI_API_KEY="AQ.Ab8RN6JQoFCQxYdtIRfNW_krBP4SuhLSZK-9pNPpsaevH-25iw"
+CRON_TOKEN = k7j-P2qL9m_zX5bN-wY3T-rQ8eF

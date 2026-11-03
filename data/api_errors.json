@@ -1,0 +1,69 @@
+{
+    "total_errors": 9,
+    "last_update": "2026-11-03 13:29:40",
+    "errors": [
+        {
+            "timestamp": "2026-09-15 13:56:14",
+            "type": "ASSERTIVITY_FAILED",
+            "message": "API Gemini falhou na análise de assertividade",
+            "file_name": "candidatura_1789473289_d8fe1e5a.pdf",
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-09-15 14:25:51",
+            "type": "VALIDATION_FAILED",
+            "message": "API Gemini falhou na validação do currículo",
+            "file_name": "candidatura_1789475076_fea94c27.pdf",
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:00:05",
+            "type": "API_HTTP_ERROR",
+            "message": "HTTP 401: API key not valid. Please pass a valid API key.",
+            "file_name": null,
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:00:09",
+            "type": "API_HTTP_ERROR",
+            "message": "HTTP 401: API key not valid. Please pass a valid API key.",
+            "file_name": null,
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:00:09",
+            "type": "VALIDATION_FAILED",
+            "message": "API Gemini falhou na validação do currículo",
+            "file_name": "candidatura_1793131069_032e4445.pdf",
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:05:02",
+            "type": "API_AUTH_ERROR",
+            "message": "HTTP 401: API key not valid. Please pass a valid API key.",
+            "file_name": null,
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:10:03",
+            "type": "API_AUTH_ERROR",
+            "message": "HTTP 401: API key not valid. Please pass a valid API key.",
+            "file_name": null,
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-10-27 21:23:38",
+            "type": "invalid_api_key_format",
+            "message": "GEMINI_API_KEY com formato não reconhecido. Use uma chave padrão AIza ou uma authorization key AQ. do Gemini.",
+            "file_name": null,
+            "job_title": null
+        },
+        {
+            "timestamp": "2026-11-03 13:29:40",
+            "type": "API_AUTH_ERROR",
+            "message": "HTTP 401: o Google sinalizou incompatibilidade no tipo de credencial. Confirme a API key do AI Studio, o header x-goog-api-key e o endpoint v1beta.",
+            "file_name": null,
+            "job_title": null
+        }
+    ]
+}
