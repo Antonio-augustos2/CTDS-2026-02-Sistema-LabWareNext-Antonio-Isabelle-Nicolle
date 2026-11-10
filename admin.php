@@ -448,7 +448,7 @@ if ($loggedIn) {
     }
 
     // Obter histórico de acessos
-    $accessLog = getAccessLog($conn, 25);
+    $accessLog = getAccessLog($conn, 30);
     $accessCounts = getAccessCounts($conn);
     $feedbacksAdmin = getFeedbacksAdmin($conn);
 
@@ -982,7 +982,7 @@ include 'header.php';
                 </div>
             </div>
             <div class="admin-card access-card">
-                <h3>Histórico de acessos às vagas</h3>
+                <h3>Histórico de acessos às vagas - 30 ultimos</h3>
                 <?php if (count($accessLog) === 0): ?>
                     <p>Nenhum acesso registrado ainda.</p>
                 <?php else: ?>
