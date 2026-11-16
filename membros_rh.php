@@ -99,10 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'A senha deve ter pelo menos 8 caracteres.';
     }
 
-    if (($password !== '' || $passwordConfirmation !== '') && $password !== $passwordConfirmation) {
-        $errors[] = 'A confirmação da senha não confere.';
-        $passwordsMustBeReentered = true;
-        $password = '';
+    if ($password !== '') {
+        if ($passwordConfirmation === '') {
+            $errors[] = 'Informe a confirmação da nova senha.';
+            $passwordsMustBeReentered = true;
+        } elseif ($password !== $passwordConfirmation) {
+            $errors[] = 'A confirmação da senha não confere.';
+            $passwordsMustBeReentered = true;
+            $password = '';
+            $passwordConfirmation = '';
+        }
+    } else {
         $passwordConfirmation = '';
     }
 
@@ -240,7 +247,7 @@ include 'header.php';
                 </div>
                 <div class="form-group">
                     <label for="password_confirmation">Confirmar senha</label>
-                    <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8" autocomplete="new-password" value="">
+                    <input type="password" id="password_confirmation" name="password_confirmation" minlength="8" autocomplete="new-password" value="">
                 </div>
                 <div class="member-form-actions">
                     <button type="submit" class="btn"><i class="fas <?= $editingId ? 'fa-save' : 'fa-user-plus' ?>"></i> <?= $editingId ? 'Salvar alterações' : 'Cadastrar membro' ?></button>
@@ -302,5 +309,28 @@ include 'header.php';
         </section>
     </div>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const passwordInput = document.getElementById('password');
+    const confirmationInput = document.getElementById('password_confirmation');
+
+    if (!passwordInput || !confirmationInput) {
+        return;
+    }
+
+    const syncPasswordConfirmationRequirement = () => {
+        const shouldRequireConfirmation = passwordInput.value !== '';
+        confirmationInput.required = shouldRequireConfirmation;
+
+        if (!shouldRequireConfirmation) {
+            confirmationInput.value = '';
+        }
+    };
+
+    passwordInput.addEventListener('input', syncPasswordConfirmationRequirement);
+    syncPasswordConfirmationRequirement();
+});
+</script>
 
 <?php include 'footer.php'; ?>

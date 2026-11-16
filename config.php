@@ -9,61 +9,51 @@ ini_set('display_startup_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
-// A chave deve ficar no ambiente ou em um arquivo .env local (nunca no Git).
-function loadLocalEnv($path) {
-    $values = [];
-    if (!is_readable($path)) {
-        return $values;
-    }
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'config_helpers.php';
 
-    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        $line = trim($line);
-        if ($line === '' || strpos($line, '#') === 0 || strpos($line, '=') === false) {
-            continue;
-        }
-
-        [$name, $value] = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
-        if ($name !== '' && getenv($name) === false) {
-            $values[$name] = trim($value, "\"'");
-            putenv($name . '=' . $values[$name]);
-        } elseif ($name !== '') {
-            $values[$name] = trim($value, "\"'");
-        }
-    }
-
-    return $values;
-}
-
-$localEnv = loadLocalEnv(__DIR__ . DIRECTORY_SEPARATOR . '.env');
+// Server environment values take precedence; the project .env is a local-development fallback.
+$localEnvPath = __DIR__ . DIRECTORY_SEPARATOR . '.env';
+$localEnv = loadLocalEnv($localEnvPath);
 
 $requiredEnv = ['DB_HOST', 'DB_USER', 'DB_PASS', 'DB_NAME', 'CRON_TOKEN'];
+$resolvedEnv = [];
 foreach ($requiredEnv as $envName) {
-    if (getenv($envName) === false) {
+    $allowEmpty = $envName === 'DB_PASS';
+    $allowMissing = $envName === 'DB_PASS'
+        && isset($resolvedEnv['DB_HOST']['value'])
+        && isLocalDatabaseHost($resolvedEnv['DB_HOST']['value']);
+    $resolvedEnv[$envName] = resolveConfigSetting(
+        $envName,
+        $localEnv,
+        getenv($envName),
+        $allowEmpty,
+        $allowMissing
+    );
+    if (
+        $resolvedEnv[$envName]['source'] === 'unset'
+        || (!$allowEmpty && $resolvedEnv[$envName]['value'] === '')
+    ) {
         error_log('Configuração obrigatória ausente: ' . $envName);
         http_response_code(500);
         die('Serviço temporariamente indisponível.');
     }
 }
 
-define('DB_HOST', getenv('DB_HOST'));
-define('DB_USER', getenv('DB_USER'));
-define('DB_PASS', getenv('DB_PASS'));
-define('DB_NAME', getenv('DB_NAME'));
-$geminiApiKey = trim((string) ($localEnv['GEMINI_API_KEY'] ?? ''));
-if ($geminiApiKey === '') {
-    $geminiApiKey = getenv('GEMINI_API_KEY') ?: '';
-}
+define('DB_HOST', $resolvedEnv['DB_HOST']['value']);
+define('DB_USER', $resolvedEnv['DB_USER']['value']);
+define('DB_PASS', $resolvedEnv['DB_PASS']['value']);
+define('DB_NAME', $resolvedEnv['DB_NAME']['value']);
+$geminiSetting = resolveConfigSetting('GEMINI_API_KEY', $localEnv, getenv('GEMINI_API_KEY'));
+$geminiApiKey = $geminiSetting['value'];
 define('GEMINI_API_KEY', $geminiApiKey);
+define('GEMINI_API_KEY_SOURCE', $geminiSetting['source']);
 $geminiStandardKeyFormatOk = preg_match('/^AIza[0-9A-Za-z_\-]{35}$/', $geminiApiKey) === 1;
 $geminiAuthorizationKeyFormatOk = preg_match('/^AQ\.[0-9A-Za-z_\-]{50}$/', $geminiApiKey) === 1;
 $geminiApiKeyFormatOk = $geminiApiKey !== '' && ($geminiStandardKeyFormatOk || $geminiAuthorizationKeyFormatOk);
 define('GEMINI_API_KEY_FORMAT_OK', $geminiApiKeyFormatOk);
 
 if ($geminiApiKey !== '' && !$geminiApiKeyFormatOk) {
-    $keyPrefix = substr($geminiApiKey, 0, 4);
-    error_log("❌ GEMINI_API_KEY definida porém com formato não reconhecido (comprimento " . strlen($geminiApiKey) . ", prefixo '" . $keyPrefix . "'). Chaves padrão Gemini têm 39 caracteres (AIza); authorization keys têm 53 caracteres (AQ.).");
+    error_log('GEMINI_API_KEY definida, mas com formato não reconhecido. Use uma API key do Gemini AI Studio.');
 }
 
 // Criar conexão sem expor warnings ou detalhes da conexão ao cliente.
@@ -82,7 +72,7 @@ $conn->set_charset('utf8mb4');
 
 
 // Use only URL-safe characters because this value is sent in ?token=...
-define('CRON_TOKEN', getenv('CRON_TOKEN'));
+define('CRON_TOKEN', $resolvedEnv['CRON_TOKEN']['value']);
 
 function getCsrfToken() {
     if (session_status() !== PHP_SESSION_ACTIVE) {

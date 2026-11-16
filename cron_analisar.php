@@ -79,11 +79,10 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'config.php';
 // Apenas JSON será retornado
 header('Content-Type: application/json; charset=utf-8');
 
-// O token deve ser URL-safe (sem #, &, ?, espaços ou acentos).
 $CRON_TOKEN = defined('CRON_TOKEN') ? (string) CRON_TOKEN : '';
 
 // Validar token
-$tokenRecebido = $_GET['token'] ?? '';
+$tokenRecebido = $_SERVER['HTTP_X_CRON_TOKEN'] ?? ($_GET['token'] ?? '');
 if ($CRON_TOKEN === '' || !is_string($tokenRecebido) || !hash_equals($CRON_TOKEN, $tokenRecebido)) {
     cronLog('Autenticação recusada: token ausente ou inválido.', 'ERROR');
     http_response_code(401);
@@ -95,6 +94,11 @@ if ($CRON_TOKEN === '' || !is_string($tokenRecebido) || !hash_equals($CRON_TOKEN
 }
 
 cronLog('Autenticação validada. Iniciando processamento.');
+$geminiKeySource = GEMINI_API_KEY_SOURCE;
+if ($geminiKeySource === 'project .env') {
+    $geminiKeySource .= ' (' . __DIR__ . DIRECTORY_SEPARATOR . '.env)';
+}
+cronLog('Gemini API key source: ' . $geminiKeySource);
 
 // Log de erro customizado
 set_error_handler(function ($errno, $errstr, $errfile, $errline) {
@@ -173,7 +177,7 @@ try {
             continue;
         }
 
-        cronLog("Processando candidatura #$idCandidatura (Candidato: {$candidatura['candidato_nome']}, Vaga: {$candidatura['vaga_titulo']})");
+        cronLog("Processando candidatura #$idCandidatura");
 
         $resultadoAnalise = analizarComApi($conn, $caminhoArquivo, $descricaoVaga, $idCandidatura);
         $resultados['total_processadas']++;

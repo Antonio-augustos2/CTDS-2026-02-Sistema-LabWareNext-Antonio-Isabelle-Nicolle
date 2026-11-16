@@ -1,2 +1,4 @@
 .env
+data/LabWare - Analisar Curriculos.xml
 data/cron_analisar.log
+data/cron_runner.log

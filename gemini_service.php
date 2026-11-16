@@ -3,6 +3,8 @@
  * Validação de currículos com a API Gemini.
  */
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'gemini_diagnostics.php';
+
 function getGeminiApiKey() {
     return defined('GEMINI_API_KEY') ? trim((string) GEMINI_API_KEY) : '';
 }
@@ -46,6 +48,7 @@ function logApiError($errorType, $errorMessage, $fileName = null, $jobTitle = nu
         if (
             is_array($latestError)
             && ($latestError['type'] ?? null) === $errorType
+            && ($latestError['message'] ?? null) === $errorMessage
             && $latestTimestamp !== false
             && $latestTimestamp <= time()
             && time() - $latestTimestamp < $dedupeMinutes * 60
@@ -144,12 +147,13 @@ function extractDocxText($path) {
 
 function callGemini($contents, $apiKey) {
     static $authenticationFailure = false;
+    static $authenticationErrorMessage = null;
 
     if ($authenticationFailure) {
         return [
             'success' => false,
             'error_code' => 'gemini_auth',
-            'error' => 'A chave da API Gemini é inválida ou não tem permissão.'
+            'error' => $authenticationErrorMessage ?? 'A Gemini API rejeitou a autenticação ou autorização.'
         ];
     }
 
@@ -241,12 +245,17 @@ function callGemini($contents, $apiKey) {
             }
 
             if ($httpCode === 401 || $httpCode === 403) {
-                $cause = stripos($response, 'ACCESS_TOKEN_TYPE_UNSUPPORTED') !== false
-                    ? 'o Google sinalizou incompatibilidade no tipo de credencial; confirme a API key do AI Studio, o header x-goog-api-key e o endpoint v1beta'
-                    : 'chave inexistente, revogada ou desabilitada (chaves expostas publicamente podem ser revogadas automaticamente pelo Google)';
-                error_log("❌ Falha de autenticação Gemini (HTTP $httpCode): $cause.");
-                logApiError('API_AUTH_ERROR', "HTTP $httpCode: $cause.", null, null, 30);
+                $diagnostic = diagnoseGeminiAuthResponse($httpCode, $response, $apiKey);
+                $diagnosticJson = json_encode($diagnostic, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                error_log('Falha de autenticação/autorização Gemini: ' . $diagnosticJson);
+                logApiError('API_AUTH_ERROR', $diagnosticJson, null, null, 30);
                 $authenticationFailure = true;
+                $authenticationErrorMessage = sprintf(
+                    'Gemini API HTTP %d (%s): %s',
+                    $diagnostic['http_code'],
+                    $diagnostic['classification'],
+                    $diagnostic['error_message']
+                );
                 break 2;
             }
 
@@ -353,7 +362,7 @@ function callGemini($contents, $apiKey) {
         return [
             'success' => false,
             'error_code' => 'gemini_auth',
-            'error' => 'A chave da API Gemini é inválida ou não tem permissão.'
+            'error' => $authenticationErrorMessage ?? 'A Gemini API rejeitou a autenticação ou autorização.'
         ];
     }
 

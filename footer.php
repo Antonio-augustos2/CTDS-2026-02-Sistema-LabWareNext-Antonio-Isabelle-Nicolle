@@ -7,6 +7,6 @@
     </div>
   </footer>
   
-  <script src="script.js?v=20261103-2"></script>
+  <script src="script.js?v=20261116-3"></script>
 </body>
 </html>

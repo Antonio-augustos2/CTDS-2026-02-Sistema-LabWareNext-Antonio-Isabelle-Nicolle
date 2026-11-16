@@ -1,6 +1,6 @@
 ﻿console.log('script.js carregado!');
 
-// FunÃ§Ã£o auxiliar para escapar HTML
+// Função auxiliar para escapar HTML
 function escapeHtml(text) {
   const map = {
     '&': '&amp;',
@@ -15,14 +15,19 @@ function escapeHtml(text) {
 function formatJobDescription(description) {
   const safeDescription = escapeHtml(description || '');
   return safeDescription
-    .replace(/\*\*(DescriÃ§Ã£o do trabalho|Responsabilidades|Requisitos DesejÃ¡veis|RemuneraÃ§Ã£o e BenefÃ­cios|InformaÃ§Ãµes Adicionais)\*\*/g, '<strong class="job-description-heading">$1</strong>')
+    .replace(/\*\*(Descrição do trabalho|Responsabilidades|Requisitos Desejáveis|Remuneração e Benefícios|Informações Adicionais)\*\*/g, '<strong class="job-description-heading">$1</strong>')
     .replace(/\n/g, '<br>');
 }
 
 function getPrimaryJobDescription(description) {
-  const text = String(description || '');
-  const structuredMatch = text.match(/\*\*DescriÃ§Ã£o do trabalho\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Responsabilidades|Requisitos DesejÃ¡veis|RemuneraÃ§Ã£o e BenefÃ­cios|InformaÃ§Ãµes Adicionais)\*\*|$)/i);
-  return structuredMatch ? structuredMatch[1].trim() : text;
+  const text = String(description || '').trim();
+  const nextSection = /^\s*(?:\*\*)?(?:Responsabilidades|Requisitos Desejáveis|Remuneração e Benefícios|Informações Adicionais)(?:\*\*)?\s*$/im;
+  const firstSectionIndex = text.search(nextSection);
+  const primaryDescription = firstSectionIndex === -1 ? text : text.slice(0, firstSectionIndex);
+
+  return primaryDescription
+    .replace(/^\s*(?:\*\*)?Descrição do trabalho(?:\*\*)?\s*(?:\r?\n|$)\s*/i, '')
+    .trim();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -44,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
       fileInput.click();
     });
 
-    // Detectar quando um arquivo Ã© selecionado
+    // Detectar quando um arquivo é selecionado
     fileInput.addEventListener('change', function () {
       console.log('Change event disparado', this.files);
       
@@ -52,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('fileStatusContainer:', fileStatusContainer);
       
       if (!fileStatusContainer) {
-        console.error('fileUploadStatus container nÃ£o encontrado!');
+        console.error('fileUploadStatus container não encontrado!');
         return;
       }
 
@@ -66,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Mostrar status do arquivo
         fileStatusContainer.innerHTML = `
           <div class="file-attached">
-            <span class="file-icon">ðŸ“„</span>
+            <span class="file-icon">📄</span>
             <div class="file-info">
               <div class="file-name">${escapeHtml(fileName)}</div>
               <div class="file-size">${fileSize} KB</div>
@@ -91,20 +96,20 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   } else {
-    console.error('fileInput ou fileButton nÃ£o encontrados!');
+    console.error('fileInput ou fileButton não encontrados!');
   }
 
   // Carregar e renderizar as vagas dinamicamente
   loadJobs();
 
-  // Recarregar vagas quando a pÃ¡gina fica visÃ­vel (usuÃ¡rio volta Ã  aba)
+  // Recarregar vagas quando a página fica visível (usuário volta à aba)
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
       loadJobs();
     }
   });
 
-  // Funcionalidade para os links "Enviar currÃ­culo" genÃ©rico
+  // Funcionalidade para os links "Enviar currículo" genérico
   const enviarCurriculoLinks = document.querySelectorAll('a[href="#formulario"]');
   enviarCurriculoLinks.forEach(link => {
     link.addEventListener('click', function (event) {
@@ -113,15 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
       const vagaSelect = document.getElementById('vaga');
       const formSection = document.getElementById('formulario');
       
-      // Limpar o select para candidatura genÃ©rica
+      // Limpar o select para candidatura genérica
       if (vagaSelect) {
         vagaSelect.value = '';
       }
       
-      // Mostrar o formulÃ¡rio
+      // Mostrar o formulário
       if (formSection) {
         formSection.classList.remove('hidden');
-        // Scroll suave para o formulÃ¡rio
+        // Scroll suave para o formulário
         formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
@@ -240,14 +245,14 @@ function renderJobs(jobs) {
   // Limpar o container
   carousel.innerHTML = '';
 
-  // Se nÃ£o hÃ¡ vagas
+  // Se não há vagas
   if (jobs.length === 0) {
     document.getElementById('carousel-indicators')?.replaceChildren();
     const previousButton = document.getElementById('carousel-prev');
     const nextButton = document.getElementById('carousel-next');
     if (previousButton) previousButton.disabled = true;
     if (nextButton) nextButton.disabled = true;
-    carousel.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">Nenhuma vaga disponÃ­vel no momento.</p>';
+    carousel.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">Nenhuma vaga disponível no momento.</p>';
     return;
   }
 
@@ -260,9 +265,9 @@ function renderJobs(jobs) {
         <div class="job-card-summary">
           <h3>${escapeHtml(job.title)}</h3>
           <span class="job-tag">${escapeHtml(job.type)}</span>
-          <p class="job-location">Local: ${escapeHtml(job.location || 'NÃ£o informado')}</p>
+          <p class="job-location">Local: ${escapeHtml(job.location || 'Não informado')}</p>
           <div class="job-description-block">
-            <strong class="job-description-heading">DescriÃ§Ã£o do trabalho</strong>
+            <strong class="job-description-heading">Descrição do trabalho</strong>
             <span class="job-description-content">${formatJobDescription(getPrimaryJobDescription(job.description))}</span>
           </div>
           <button type="button" class="btn btn-more" data-job-id="${job.id}">Saiba mais</button>
@@ -270,7 +275,7 @@ function renderJobs(jobs) {
         <div class="job-card-full hidden">
           <h3>${escapeHtml(job.title)}</h3>
           <span class="job-tag">${escapeHtml(job.type)}</span>
-          <p class="job-location">Local: ${escapeHtml(job.location || 'NÃ£o informado')}</p>
+          <p class="job-location">Local: ${escapeHtml(job.location || 'Não informado')}</p>
           <div class="job-description-block">${formatJobDescription(job.description)}</div>
           <div class="job-card-actions">
             <button type="button" class="btn btn-apply" data-job-id="${job.id}">Candidatar-se</button>
@@ -288,11 +293,11 @@ function renderJobs(jobs) {
   // Criar indicadores
   createCarouselIndicators(jobs.length);
 
-  // Configurar os estados resumido/completo e os botÃµes de candidatura
+  // Configurar os estados resumido/completo e os botões de candidatura
   setupJobDetailsButtons();
   setupApplyButtons();
   
-  // Configurar navegaÃ§Ã£o do carrosel
+  // Configurar navegação do carrosel
   setupCarouselNavigation(jobs.length);
 }
 
@@ -307,7 +312,7 @@ function setupJobDetailsButtons() {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `job_id=${encodeURIComponent(jobId)}`
-      }).catch(error => console.error('NÃ£o foi possÃ­vel registrar o clique:', error));
+      }).catch(error => console.error('Não foi possível registrar o clique:', error));
 
       card.querySelector('.job-card-summary')?.classList.add('hidden');
       card.querySelector('.job-card-full')?.classList.remove('hidden');
@@ -322,7 +327,7 @@ function setupJobDetailsButtons() {
       card.querySelector('.job-card-full')?.classList.add('hidden');
       card.querySelector('.job-card-summary')?.classList.remove('hidden');
 
-      // Reposiciona a tela no inÃ­cio do card enquanto ele volta ao resumo.
+      // Reposiciona a tela no início do card enquanto ele volta ao resumo.
       const headerOffset = 96;
       const cardTop = card.getBoundingClientRect().top + window.scrollY - headerOffset;
       window.scrollTo({
@@ -402,17 +407,17 @@ function populateJobSelect(jobs) {
   
   if (!vagaSelect) return;
 
-  // Preservar a vaga escolhida quando as opÃ§Ãµes forem recarregadas.
-  // Isso evita que o select volte para a opÃ§Ã£o inicial ao anexar um currÃ­culo
-  // ou quando a pÃ¡gina dispara o recarregamento das vagas.
+  // Preservar a vaga escolhida quando as opções forem recarregadas.
+  // Isso evita que o select volte para a opção inicial ao anexar um currículo
+  // ou quando a página dispara o recarregamento das vagas.
   const selectedJobId = vagaSelect.value;
 
-  // Limpar opÃ§Ãµes existentes (mantendo a primeira)
+  // Limpar opções existentes (mantendo a primeira)
   while (vagaSelect.options.length > 1) {
     vagaSelect.remove(1);
   }
 
-  // Adicionar opÃ§Ãµes das vagas
+  // Adicionar opções das vagas
   jobs.forEach(job => {
     const option = document.createElement('option');
     option.value = job.id;
@@ -440,17 +445,17 @@ function setupApplyButtons() {
         vagaSelect.value = jobId;
       }
       
-      // Mostrar o formulÃ¡rio
+      // Mostrar o formulário
       if (formSection) {
         formSection.classList.remove('hidden');
-        // Scroll suave para o formulÃ¡rio
+        // Scroll suave para o formulário
         formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
 }
 
-// Funcionalidade do formulÃ¡rio de candidatura
+// Funcionalidade do formulário de candidatura
 document.addEventListener('DOMContentLoaded', function () {
   const contactForm = document.querySelector('.contact-form');
   
@@ -461,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function () {
       event.preventDefault();
       
       const formData = new FormData(contactForm);
-      console.log('FormulÃ¡rio enviado. Dados:', Array.from(formData.entries()));
+      console.log('Formulário enviado. Dados:', Array.from(formData.entries()));
       const vagaSelect = document.getElementById('vaga');
       const jobId = formData.get('job_id');
       const resumeFile = formData.get('formulario');
@@ -469,19 +474,19 @@ document.addEventListener('DOMContentLoaded', function () {
       const temVagaSelecionada = Boolean(jobId && String(jobId).trim() !== '');
 
       if (!privacyAccepted || !privacyAccepted.checked) {
-        alert('VocÃª precisa aceitar a PolÃ­tica de Privacidade para continuar com a candidatura.');
+        alert('Você precisa aceitar a Política de Privacidade para continuar com a candidatura.');
         privacyAccepted && privacyAccepted.focus();
         return;
       }
 
       if (!resumeFile || resumeFile.size === 0) {
-        alert('Anexe seu currÃ­culo em formato PDF ou DOCX.');
+        alert('Anexe seu currículo em formato PDF ou DOCX.');
         return;
       }
 
       const fileName = resumeFile.name.toLowerCase();
       if (!fileName.endsWith('.pdf') && !fileName.endsWith('.docx')) {
-        alert('Formato invÃ¡lido. Envie somente arquivos .pdf ou .docx.');
+        alert('Formato inválido. Envie somente arquivos .pdf ou .docx.');
         return;
       }
 
@@ -509,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return { 
             status: response.status, 
             ok: response.ok, 
-            data: { error: 'Resposta invÃ¡lida do servidor' } 
+            data: { error: 'Resposta inválida do servidor' } 
           };
         });
       })
@@ -517,10 +522,10 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Resultado processado:', result);
         const { status, ok, data } = result;
         
-        // Verificar se a requisiÃ§Ã£o foi bem-sucedida
+        // Verificar se a requisição foi bem-sucedida
         if (ok && data.success) {
           const mensagemSucesso = temVagaSelecionada
-            ? 'Candidatura enviada com sucesso! Agradecemos sua participaÃ§Ã£o.'
+            ? 'Candidatura enviada com sucesso! Agradecemos sua participação.'
             : 'Candidatura cadastrada no banco de talentos com sucesso!';
           alert(mensagemSucesso);
           contactForm.reset();
@@ -529,16 +534,16 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           document.getElementById('formulario').classList.add('hidden');
         } else {
-          // Mostrar erro especÃ­fico
+          // Mostrar erro específico
           const errorMsg = data.error || data.message || `Erro do servidor (HTTP ${status})`;
           alert('Erro: ' + errorMsg);
           console.error('Erro na resposta:', data);
         }
       })
       .catch(error => {
-        console.error('Erro na requisiÃ§Ã£o:', error);
+        console.error('Erro na requisição:', error);
         console.error('Stack:', error.stack);
-        alert('Erro ao enviar candidatura. Verifique sua conexÃ£o e tente novamente.');
+        alert('Erro ao enviar candidatura. Verifique sua conexão e tente novamente.');
       })
       .finally(() => {
         if (submitButton) {
@@ -583,7 +588,7 @@ function initThemeToggle() {
   }));
 }
 
-// InteraÃ§Ãµes visuais do destaque editorial da pÃ¡gina inicial.
+// Interações visuais do destaque editorial da página inicial.
 document.addEventListener('DOMContentLoaded', function () {
   const strip = document.querySelector('.headline-strip');
   const cards = strip ? Array.from(strip.querySelectorAll('.headline-card')) : [];

@@ -182,7 +182,7 @@ if ($loggedIn) {
         if ($httpCode === 200) {
             $decoded = json_decode($response, true);
             if (is_array($decoded) && isset($decoded['models']) && is_array($decoded['models'])) {
-                header('Location: ' . $redirectBase . 'ok&gemini_models=' . count($decoded['models']) . '&gemini_key_len=' . strlen($apiKey));
+                header('Location: ' . $redirectBase . 'ok&gemini_models=' . count($decoded['models']));
                 exit;
             }
 
@@ -191,12 +191,10 @@ if ($loggedIn) {
         }
 
         if ($httpCode === 401 || $httpCode === 403) {
-            $cause = stripos($response, 'ACCESS_TOKEN_TYPE_UNSUPPORTED') !== false
-                ? 'o Google sinalizou incompatibilidade no tipo de credencial. Confirme a API key do AI Studio, o header x-goog-api-key e o endpoint v1beta'
-                : 'chave inexistente, revogada ou desabilitada (chaves expostas publicamente podem ser revogadas automaticamente pelo Google)';
-            logApiError('API_AUTH_ERROR', "HTTP $httpCode: $cause.", null, null, 30);
-            $testResult = stripos($response, 'ACCESS_TOKEN_TYPE_UNSUPPORTED') !== false ? 'erro_tipo' : 'erro_revogada';
-            header('Location: ' . $redirectBase . $testResult . '&gemini_http=' . $httpCode);
+            $diagnostic = diagnoseGeminiAuthResponse($httpCode, $response, $apiKey);
+            $diagnosticJson = json_encode($diagnostic, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            logApiError('API_AUTH_ERROR', $diagnosticJson, null, null, 30);
+            header('Location: ' . $redirectBase . 'erro_auth&gemini_http=' . $httpCode);
             exit;
         }
 
@@ -502,9 +500,25 @@ include 'header.php';
                 $idadeErroGemini = $erroGeminiTimestamp !== false ? time() - $erroGeminiTimestamp : null;
                 if ($idadeErroGemini !== null && $idadeErroGemini >= 0 && $idadeErroGemini < 86400) {
                     if ($ultimoErroGemini['type'] === 'API_AUTH_ERROR') {
-                        $bannerGemini = stripos($ultimoErroGemini['message'], 'incompatibilidade no tipo de credencial') !== false
-                            ? 'o Google sinalizou incompatibilidade no tipo de credencial; confirme a API key do AI Studio e o endpoint da integração'
-                            : 'a chave Gemini está revogada, inválida ou desabilitada';
+                        $authDiagnostic = json_decode((string) ($ultimoErroGemini['message'] ?? ''), true);
+                        $authClassification = is_array($authDiagnostic)
+                            && is_string($authDiagnostic['classification'] ?? null)
+                                ? $authDiagnostic['classification']
+                                : 'unclassified_auth_failure';
+                        $authMessages = [
+                            'credential_type_mismatch' => 'o Google sinalizou incompatibilidade no tipo de credencial',
+                            'api_key_blocked' => 'o Google indicou que a chave foi bloqueada ou revogada',
+                            'api_key_invalid' => 'o Google indicou que a chave é inválida ou expirou',
+                            'api_key_restricted' => 'uma restrição explícita da chave bloqueia esta solicitação',
+                            'api_service_disabled' => 'o serviço da API está desabilitado no projeto',
+                            'project_verification_required' => 'o projeto precisa concluir a verificação exigida pelo Google',
+                            'free_tier_unavailable' => 'o nível gratuito está indisponível para este projeto',
+                            'billing_required' => 'o Google indicou que é necessário corrigir a configuração de billing',
+                            'project_access_denied' => 'o Google indicou que o projeto não tem acesso ao serviço',
+                            'permission_denied_unclassified' => 'o Google negou a permissão sem informar uma causa específica',
+                            'unclassified_auth_failure' => 'o Google recusou a autenticação ou autorização sem detalhar a causa'
+                        ];
+                        $bannerGemini = $authMessages[$authClassification] ?? $authMessages['unclassified_auth_failure'];
                     } elseif ($ultimoErroGemini['type'] === 'missing_api_key') {
                         $bannerGemini = 'a chave Gemini não está configurada';
                     } elseif ($ultimoErroGemini['type'] === 'invalid_api_key_format') {
@@ -519,16 +533,14 @@ include 'header.php';
             $geminiTestAlertClass = 'alert-error';
             if ($geminiTestResult === 'ok') {
                 $modelCount = filter_var($_GET['gemini_models'] ?? 0, FILTER_VALIDATE_INT);
-                $keyLength = filter_var($_GET['gemini_key_len'] ?? 0, FILTER_VALIDATE_INT);
-                $keyPrefix = substr(getGeminiApiKey(), 0, 4);
-                $geminiTestAlert = 'Conexão OK — ' . max(0, (int) $modelCount) . ' modelos disponíveis. Chave: ' . $keyPrefix . '*** (' . max(0, (int) $keyLength) . ' caracteres).';
+                $geminiTestAlert = 'O endpoint models.list aceitou a solicitação (' . max(0, (int) $modelCount) . ' modelos). Isso não confirma acesso a generateContent, verificação do projeto ou billing.';
                 $geminiTestAlertClass = 'alert-success';
+            } elseif ($geminiTestResult === 'erro_auth') {
+                $geminiTestAlert = 'O Google recusou a autenticação/autorização (HTTP ' . (int) $geminiTestHttp . '). Consulte data/api_errors.json para o diagnóstico seguro.';
             } elseif ($geminiTestResult === 'erro_tipo') {
-                $geminiTestAlert = 'O Google sinalizou incompatibilidade no tipo de credencial. Confirme a API key do AI Studio, o header x-goog-api-key e o endpoint v1beta.';
+                $geminiTestAlert = 'A chamada do Google foi recusada. Consulte data/api_errors.json para o diagnóstico seguro.';
             } elseif ($geminiTestResult === 'erro_revogada') {
-                $geminiTestAlert = GEMINI_API_KEY === ''
-                    ? 'A GEMINI_API_KEY está ausente. Configure uma API key do Gemini no .env do servidor.'
-                    : 'A chave Gemini é inexistente, revogada ou desabilitada. Gere uma nova e atualize o .env do servidor.';
+                $geminiTestAlert = 'A chamada do Google foi recusada. Consulte data/api_errors.json para o diagnóstico seguro.';
             } elseif ($geminiTestResult === 'erro_rede') {
                 $geminiTestAlert = $geminiTestHttp === 0
                     ? 'Não foi possível conectar à API Gemini (falha de rede ou timeout).'
@@ -537,7 +549,7 @@ include 'header.php';
             ?>
             <?php if ($bannerGemini !== null): ?>
                 <div class="alert alert-error" role="alert">
-                    ⚠️ Triagem automática pausada: <?= htmlspecialchars($bannerGemini) ?>. Atualize a GEMINI_API_KEY no .env do servidor. Último erro: <?= htmlspecialchars(date('d/m/Y H:i', strtotime($ultimoErroGemini['timestamp']))) ?>.
+                    ⚠️ Triagem automática pausada: <?= htmlspecialchars($bannerGemini) ?>. Consulte o diagnóstico seguro em data/api_errors.json e ajuste a configuração correspondente. Último erro: <?= htmlspecialchars(date('d/m/Y H:i', strtotime($ultimoErroGemini['timestamp']))) ?>.
                 </div>
             <?php endif; ?>
             <?php if ($geminiTestAlert !== null): ?>

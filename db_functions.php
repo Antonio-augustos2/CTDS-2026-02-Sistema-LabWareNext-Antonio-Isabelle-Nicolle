@@ -153,6 +153,35 @@ function ensureVagaMetadataColumns($conn) {
     }
 }
 
+function repairVagaTextEncoding($text) {
+    $text = (string) $text;
+    $markers = ['Ã', 'Â', 'â€', 'ðŸ'];
+
+    $countMarkers = static function ($value) use ($markers) {
+        $count = 0;
+        foreach ($markers as $marker) {
+            $count += substr_count($value, $marker);
+        }
+        return $count;
+    };
+
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        $markerCount = $countMarkers($text);
+        if ($markerCount === 0) {
+            break;
+        }
+
+        $repaired = iconv('UTF-8', 'Windows-1252', $text);
+        if ($repaired === false || preg_match('//u', $repaired) !== 1 || $countMarkers($repaired) >= $markerCount) {
+            break;
+        }
+
+        $text = $repaired;
+    }
+
+    return $text;
+}
+
 /**
  * Garantir coluna de armazenamento de arquivo na tabela candidatura.
  */
@@ -598,10 +627,10 @@ function getAllVagas($conn) {
     while ($row = $result->fetch_assoc()) {
         $vagas[] = [
             'id' => $row['id_vaga'],
-            'title' => $row['titulo'],
-            'type' => $row['tipo'] ?? 'Desenvolvedor • Remoto',
-            'location' => $row['localizacao'] ?? 'Remoto',
-            'description' => $row['descricao'],
+            'title' => repairVagaTextEncoding($row['titulo']),
+            'type' => repairVagaTextEncoding($row['tipo'] ?? 'Desenvolvedor • Remoto'),
+            'location' => repairVagaTextEncoding($row['localizacao'] ?? 'Remoto'),
+            'description' => repairVagaTextEncoding($row['descricao']),
             'status' => $row['status'] ?? 'Aberta'
         ];
     }
@@ -626,10 +655,10 @@ function getAllVagasAdmin($conn) {
     while ($row = $result->fetch_assoc()) {
         $vagas[] = [
             'id' => $row['id_vaga'],
-            'title' => $row['titulo'],
-            'type' => $row['tipo'] ?? 'Desenvolvedor • Remoto',
-            'location' => $row['localizacao'] ?? 'Remoto',
-            'description' => $row['descricao'],
+            'title' => repairVagaTextEncoding($row['titulo']),
+            'type' => repairVagaTextEncoding($row['tipo'] ?? 'Desenvolvedor • Remoto'),
+            'location' => repairVagaTextEncoding($row['localizacao'] ?? 'Remoto'),
+            'description' => repairVagaTextEncoding($row['descricao']),
             'status' => $row['status'] ?? 'Aberta'
         ];
     }
@@ -654,10 +683,10 @@ function getVagaById($conn, $id) {
     $row = $result->fetch_assoc();
     return [
         'id' => $row['id_vaga'],
-        'title' => $row['titulo'],
-        'type' => $row['tipo'] ?? 'Desenvolvedor • Remoto',
-        'location' => $row['localizacao'] ?? 'Remoto',
-        'description' => $row['descricao'],
+        'title' => repairVagaTextEncoding($row['titulo']),
+        'type' => repairVagaTextEncoding($row['tipo'] ?? 'Desenvolvedor • Remoto'),
+        'location' => repairVagaTextEncoding($row['localizacao'] ?? 'Remoto'),
+        'description' => repairVagaTextEncoding($row['descricao']),
         'status' => $row['status']
     ];
 }
